@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
-	"time"
 )
 
 type Block [32]byte
@@ -16,13 +15,35 @@ type Key struct {
 }
 
 func main() {
-	rand.Seed(time.Now().Unix())
+	// rand.Seed(time.Now().Unix())
 
 	privateKey, publicKey := generateKeys()
 	err := saveKeys(privateKey, publicKey)
 	if err != nil {
 		return
 	}
+
+	var signature [256]Block
+	var message string = "Hello world!"
+	var messageHash Block = sha256.Sum256([]byte(message))
+	fmt.Printf("Message Hash: %x \n", messageHash)
+
+	for idx, hex := range messageHash {
+		var bitCompare int = 128
+		for i := 0; i < 8; i++ {
+			bitWise := int(hex) & bitCompare
+			if int(bitWise) == bitCompare {
+				num := privateKey.one[idx+i]
+				signature[idx+i] = num
+			} else {
+				num := privateKey.zero[idx+i]
+				signature[idx+i] = num
+			}
+			bitCompare /= 2
+		}
+	}
+
+	fmt.Printf("%v", signature)
 }
 
 func generateKeys() (Key, Key) {
