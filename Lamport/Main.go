@@ -23,27 +23,15 @@ func main() {
 		return
 	}
 
-	var signature [256]Block
 	var message string = "Hello world!"
 	var messageHash Block = sha256.Sum256([]byte(message))
 	fmt.Printf("Message Hash: %x \n", messageHash)
 
-	for idx, hex := range messageHash {
-		var bitCompare int = 128
-		for i := 0; i < 8; i++ {
-			bitWise := int(hex) & bitCompare
-			if int(bitWise) == bitCompare {
-				num := privateKey.one[idx+i]
-				signature[idx+i] = num
-			} else {
-				num := privateKey.zero[idx+i]
-				signature[idx+i] = num
-			}
-			bitCompare /= 2
-		}
+	signature := generateSignature(messageHash, privateKey)
+	err = saveSignature(signature)
+	if err != nil {
+		return
 	}
-
-	fmt.Printf("%v", signature)
 }
 
 func generateKeys() (Key, Key) {
@@ -117,6 +105,46 @@ func saveKey(file os.File, key Key) error {
 	var line string
 	for i := 0; i < 256; i++ {
 		line = hex.EncodeToString(key.zero[i][:]) + "," + hex.EncodeToString(key.one[i][:]) + "\n"
+		_, err := file.WriteString(line)
+
+		if err != nil {
+			fmt.Println(err)
+			return err
+		}
+	}
+	return nil
+}
+
+func generateSignature(messageHash Block, privateKey Key) [256]Block {
+	var signature [256]Block
+	var signatureIdx int = 0
+	for _, hex := range messageHash {
+		var bitCompare int = 128
+		for i := 0; i < 8; i++ {
+			bitWise := int(hex) & bitCompare
+			if int(bitWise) == bitCompare {
+				signature[signatureIdx] = privateKey.one[signatureIdx]
+			} else {
+				signature[signatureIdx] = privateKey.zero[signatureIdx]
+			}
+			bitCompare /= 2
+			signatureIdx += 1
+		}
+	}
+
+	return signature
+}
+
+func saveSignature(signature [256]Block) error {
+	file, err := createFile("signature.keys")
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+
+	var line string
+	for i := 0; i < 256; i++ {
+		line = hex.EncodeToString(signature[i][:]) + "\n"
 		_, err := file.WriteString(line)
 
 		if err != nil {
