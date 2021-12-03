@@ -17,12 +17,14 @@ type Key struct {
 func main() {
 	// rand.Seed(time.Now().Unix())
 
+	// KEY GENERATION
 	privateKey, publicKey := generateKeys()
 	err := saveKeys(privateKey, publicKey)
 	if err != nil {
 		return
 	}
 
+	// MESSAGE SIGNING
 	var message string = "Hello world!"
 	var messageHash Block = sha256.Sum256([]byte(message))
 	fmt.Printf("Message Hash: %x \n", messageHash)
@@ -32,6 +34,30 @@ func main() {
 	if err != nil {
 		return
 	}
+
+	// SIGNATURE VERIFICATION
+	// <-- PUT BREAKPOINT TO MODIGY MESSAGE FOR TESTING
+	var signatureIdx int = 0
+	for _, hex := range sha256.Sum256([]byte(message)) {
+		var bitCompare int = 128
+		for i := 0; i < 8; i++ {
+			bitWise := int(hex) & bitCompare
+			if int(bitWise) == bitCompare {
+				if signature[signatureIdx] != privateKey.one[signatureIdx] {
+					fmt.Println("INVALID MESSAGE")
+					return
+				}
+			} else {
+				if signature[signatureIdx] != privateKey.zero[signatureIdx] {
+					fmt.Println("INVALID MESSAGE")
+					return
+				}
+			}
+			bitCompare /= 2
+			signatureIdx += 1
+		}
+	}
+	fmt.Println("VALID MESSAGE")
 }
 
 func generateKeys() (Key, Key) {
