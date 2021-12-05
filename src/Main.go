@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"strconv"
 )
 
 type Block [32]byte
@@ -25,39 +26,29 @@ func main() {
 	}
 
 	// MESSAGE SIGNING
-	var message string = "Hello world!"
-	var messageHash Block = sha256.Sum256([]byte(message))
-	fmt.Printf("Message Hash: %x \n", messageHash)
+	// var message string = "Hello world!"
+	// var messageHash Block = sha256.Sum256([]byte(message))
+	// fmt.Printf("Message Hash: %x \n", messageHash)
 
-	signature := generateSignature(messageHash, privateKey)
-	err = saveSignature(signature)
-	if err != nil {
-		return
-	}
+	// signature := generateSignature(messageHash, privateKey)
+	// err = saveSignature(signature)
+	// if err != nil {
+	// 	return
+	// }
 
-	// SIGNATURE VERIFICATION
-	// <-- PUT BREAKPOINT TO MODIGY MESSAGE FOR TESTING
-	var signatureIdx int = 0
-	for _, hex := range sha256.Sum256([]byte(message)) {
-		var bitCompare int = 128
-		for i := 0; i < 8; i++ {
-			bitWise := int(hex) & bitCompare
-			if int(bitWise) == bitCompare {
-				if signature[signatureIdx] != privateKey.one[signatureIdx] {
-					fmt.Println("INVALID MESSAGE")
-					return
-				}
-			} else {
-				if signature[signatureIdx] != privateKey.zero[signatureIdx] {
-					fmt.Println("INVALID MESSAGE")
-					return
-				}
-			}
-			bitCompare /= 2
-			signatureIdx += 1
+	// verifySignature(message, signature, privateKey)
+
+	for i := 0; i < 100; i++ {
+		var message string = strconv.Itoa(i)
+		var messageHash Block = sha256.Sum256([]byte(message))
+		var signature [256]Block = generateSignature(messageHash, privateKey)
+		fmt.Printf("Message:%v \nHash:%x\n\n", message, messageHash)
+		if verifySignature(message, signature, privateKey) == false {
+			fmt.Printf("SIGNATURE FAILED \nMessage:%v \nHash:%x", message, messageHash)
+			panic("SIGNATURE FAILED")
 		}
 	}
-	fmt.Println("VALID MESSAGE")
+	fmt.Printf("SUCCESS!")
 }
 
 func generateKeys() (Key, Key) {
@@ -179,4 +170,28 @@ func saveSignature(signature [256]Block) error {
 		}
 	}
 	return nil
+}
+
+func verifySignature(message string, signature [256]Block, privateKey Key) bool {
+	// SIGNATURE VERIFICATION
+	// <-- PUT BREAKPOINT TO MODIGY MESSAGE FOR TESTING
+	var signatureIdx int = 0
+	for _, hex := range sha256.Sum256([]byte(message)) {
+		var bitCompare int = 128
+		for i := 0; i < 8; i++ {
+			bitWise := int(hex) & bitCompare
+			if int(bitWise) == bitCompare {
+				if signature[signatureIdx] != privateKey.one[signatureIdx] {
+					return false
+				}
+			} else {
+				if signature[signatureIdx] != privateKey.zero[signatureIdx] {
+					return false
+				}
+			}
+			bitCompare /= 2
+			signatureIdx += 1
+		}
+	}
+	return true
 }
